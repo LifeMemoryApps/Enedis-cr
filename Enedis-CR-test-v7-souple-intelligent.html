@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#071017"/>
+<title>Enedis CR</title>
+<style>
+:root{--bg:#071017;--panel:#0f1922;--panel2:#121f2a;--line:#22313c;--text:#f5f7f8;--muted:#91a2ad;--green:#1fd48a;--green2:#12b974;--red:#ff6861}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#071017,#0a1219);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.app{max-width:520px;margin:0 auto;min-height:100vh;padding:env(safe-area-inset-top) 16px calc(94px + env(safe-area-inset-bottom))}
+.topbar{position:sticky;top:0;z-index:5;background:rgba(7,16,23,.92);backdrop-filter:blur(18px);padding:14px 0 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px}.bolt{width:34px;height:34px;border-radius:10px;background:rgba(31,212,138,.12);display:grid;place-items:center;color:var(--green)}
+.sub{color:var(--muted);font-size:12px;margin-top:4px}.screen{display:none;padding-top:18px}.screen.active{display:block}
+h1{font-size:28px;line-height:1.1;margin:6px 0 8px}h2{font-size:20px;margin:0 0 14px}p{color:var(--muted);line-height:1.45}
+.card{background:linear-gradient(180deg,var(--panel),#0c151d);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}
+.choice{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--panel2);margin:10px 0;cursor:pointer}
+.choice.selected{border-color:var(--green)}.choice.cancel.selected{border-color:var(--red)}
+.icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#182833;font-size:19px}.choice .txt{flex:1}.choice .title{font-weight:750}.choice .desc{font-size:12px;color:var(--muted);margin-top:3px}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+input,select,textarea{width:100%;border:1px solid var(--line);background:#0d1720;color:var(--text);border-radius:13px;padding:14px;font-size:16px;outline:none}
+textarea{min-height:118px;resize:vertical}.btn{width:100%;border:0;border-radius:14px;padding:15px 16px;font-size:16px;font-weight:800;cursor:pointer;margin-top:12px}
+.primary{background:linear-gradient(180deg,var(--green),var(--green2));color:#032a1a}.secondary{background:#15232e;color:var(--text);border:1px solid var(--line)}.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.progress{display:flex;gap:6px;margin:2px 0 18px}.progress span{height:4px;background:#233440;flex:1;border-radius:4px}.progress span.on{background:var(--green)}
+.crbox{white-space:pre-wrap;background:#0d1720;border:1px solid var(--line);border-radius:16px;padding:16px;line-height:1.55;font-size:16px}
+.badge{display:inline-flex;border-radius:999px;background:rgba(31,212,138,.12);color:var(--green);padding:7px 10px;font-size:12px;font-weight:700}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.switch{width:54px;height:32px;border-radius:999px;background:#394753;position:relative;cursor:pointer}.switch:after{content:"";position:absolute;width:26px;height:26px;background:white;border-radius:50%;top:3px;left:3px;transition:.2s}.switch.on{background:var(--green)}.switch.on:after{left:25px}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(520px,100%);padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(7,16,23,.92);backdrop-filter:blur(18px);border-top:1px solid rgba(255,255,255,.07);display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nav button{background:none;border:0;color:var(--muted);font-size:12px;padding:8px 4px}.nav button.active{color:var(--green);font-weight:700}
+.small{font-size:12px;color:var(--muted)}.history-item{padding:12px;border-bottom:1px solid var(--line)}.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);background:#15232e;color:white;border:1px solid var(--line);padding:10px 14px;border-radius:999px;opacity:0;transition:.2s;z-index:20}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.editor{display:none}.editor.active{display:block}.resultview.hidden{display:none}
+.accessory-row{display:grid;grid-template-columns:1.5fr .65fr;gap:8px;align-items:end;margin:8px 0}
+.accessory-actions{display:flex;gap:8px;align-items:center}
+.mini-btn{border:1px solid var(--line);background:#15232e;color:var(--text);border-radius:12px;padding:11px 12px;font-weight:700}
+.custom-accessory{grid-column:1/-1}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar"><div class="brand"><div class="bolt">⚡</div><div>Enedis CR<div class="sub">Rapide, constant et professionnel</div></div></div></div>
+
+<section id="home" class="screen active">
+  <div class="card"><div class="switchrow"><div><div style="font-weight:800;font-size:18px">Mode astreinte</div><div id="modeText" class="small">Désactivé — travaux programmés</div></div><div id="astreinteSwitch" class="switch" onclick="toggleAstreinte()"></div></div></div>
+  <h2>Créer un compte rendu</h2>
+  <div class="choice" onclick="startFlow('consignation')"><div class="icon">🔒</div><div class="txt"><div class="title">Consignation</div><div class="desc">HTA, BT ou protection transfo</div></div><div>›</div></div>
+  <div class="choice" onclick="startFlow('deconsignation')"><div class="icon">🔓</div><div class="txt"><div class="title">Déconsignation</div><div class="desc">HTA, BT ou protection transfo</div></div><div>›</div></div>
+  <div class="choice" onclick="startFlow('intervention')"><div class="icon">🛠️</div><div class="txt"><div class="title">Intervention</div><div class="desc">Identification, préparation, remise en schéma normal…</div></div><div>›</div></div>
+  <div class="choice" onclick="startFlow('cloture')"><div class="icon">✅</div><div class="txt"><div class="title">Clôture</div><div class="desc">Clôture RSI, chantier, transmission…</div></div><div>›</div></div>
+</section>
+
+<section id="domain" class="screen">
+  <div class="progress"><span class="on"></span><span></span><span></span><span></span><span></span></div>
+  <h1>Type de consignation</h1><p>Choisis le domaine concerné.</p>
+  <div class="choice" onclick="chooseDomain('HTA')"><div class="icon">⚡</div><div class="txt"><div class="title">HTA</div><div class="desc">Coupure d’artère ou double dérivation</div></div><div>›</div></div>
+  <div class="choice" onclick="chooseDomain('BT')"><div class="icon">🔌</div><div class="txt"><div class="title">BT</div><div class="desc">Départ BT, INTER BT ou protection transfo</div></div><div>›</div></div>
+  <button class="btn ghost" onclick="go('home')">Retour</button>
+</section>
+
+<section id="subtype" class="screen">
+  <div class="progress"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+  <h1 id="subtypeTitle">Choix</h1><p id="subtypeDesc"></p><div id="subtypeChoices"></div>
+  <button class="btn ghost" onclick="go(state.domain==='AUTRE'?'home':'domain')">Retour</button>
+</section>
+
+<section id="form" class="screen">
+  <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div>
+  <h1>Informations</h1><p>Uniquement les éléments nécessaires au compte rendu.</p><div id="dynamicFields"></div>
+  <button class="btn primary" onclick="goToStatus()">Continuer</button>
+  <button class="btn ghost" onclick="go('subtype')">Retour</button>
+</section>
+
+<section id="status" class="screen">
+  <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+  <h1>État du chantier</h1>
+  <p>Indique si les travaux ont réellement été effectués.</p>
+  <div id="doneChoice" class="choice" onclick="selectStatus('realise')"><div class="icon">✅</div><div class="txt"><div class="title">Travaux réalisés</div><div class="desc">Le chantier a été exécuté</div></div><div id="doneMark"></div></div>
+  <div id="notDoneChoice" class="choice cancel" onclick="selectStatus('non_realise')"><div class="icon">⛔</div><div class="txt"><div class="title">Travaux non réalisés</div><div class="desc">Annulation, report, impossibilité d’accès, autre…</div></div><div id="notDoneMark"></div></div>
+  <div id="partialChoice" class="choice" onclick="selectStatus('partiel')"><div class="icon">◐</div><div class="txt"><div class="title">Travaux partiellement réalisés</div><div class="desc">Une partie seulement des travaux a été effectuée</div></div><div id="partialMark"></div></div>
+  <div id="reasonWrap" style="display:none">
+    <label>Motif / raison</label>
+    <select id="reasonType" onchange="toggleOtherReason()">
+      <option>Chantier annulé</option>
+      <option>Chantier reporté</option>
+      <option>Accès impossible</option>
+      <option>Entreprise absente</option>
+      <option>Conditions non réunies</option>
+      <option>Modification du programme de travaux</option>
+      <option>Problème matériel</option>
+      <option>Aléa réseau</option>
+      <option>Autre</option>
+    </select>
+    <div id="otherReasonWrap" style="display:none">
+      <label>Précision</label><input id="otherReason" placeholder="Ex. accès au poste impossible">
+    </div>
+  </div>
+  <div id="partialWrap" style="display:none">
+    <label>Travaux réellement réalisés</label>
+    <input id="partialDone" placeholder="Ex. confection d’une J3UP">
+    <label>Travaux restant à réaliser</label>
+    <input id="partialRemaining" placeholder="Ex. une JTR reste à réaliser">
+    <label>Cause / difficulté</label>
+    <input id="partialReason" placeholder="Ex. accès impossible au second ouvrage">
+  </div>
+  <label>Événement / difficulté particulière (facultatif)</label>
+  <input id="incidentNote" placeholder="Ex. accès au poste difficile, matériel bloqué…">
+  <button class="btn primary" onclick="generateCR()">Générer le compte rendu</button>
+  <button class="btn ghost" onclick="go('form')">Retour</button>
+</section>
+
+<section id="result" class="screen">
+  <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+  <div id="resultBadge" class="badge">✓ Compte rendu généré</div><h1>Compte rendu</h1>
+  <div id="resultView" class="resultview"><div id="crText" class="crbox"></div>
+    <div class="btnrow"><button class="btn secondary" onclick="openEditor()">Modifier</button><button class="btn primary" onclick="copyCR()">Copier</button></div>
+    <button id="prepareDeconBtn" class="btn secondary" style="display:none" onclick="prepareDeconsignation()">Préparer la déconsignation</button>
+  </div>
+  <div id="editor" class="editor">
+    <label>Modifier le compte rendu</label>
+    <textarea id="crEditor"></textarea>
+    <div class="btnrow"><button class="btn ghost" onclick="cancelEdit()">Annuler</button><button class="btn primary" onclick="saveEdit()">Valider</button></div>
+  </div>
+  <button class="btn ghost" onclick="saveAndNew()">Enregistrer et créer un autre CR</button>
+</section>
+
+<section id="history" class="screen"><h1>Historique</h1><div id="historyList" class="card"></div></section>
+<section id="settings" class="screen"><h1>Réglages</h1><div class="card"><div class="switchrow"><div><b>Mode astreinte</b><div class="small">Mémorisé sur ce téléphone</div></div><div id="astreinteSwitch2" class="switch" onclick="toggleAstreinte()"></div></div></div><button class="btn ghost" onclick="clearHistory()">Vider l’historique</button></section>
+</div>
+
+<div class="nav">
+<button id="navHome" class="active" onclick="go('home')">⌂<br>Accueil</button>
+<button id="navHistory" onclick="go('history')">◷<br>Historique</button>
+<button id="navSettings" onclick="go('settings')">⚙<br>Réglages</button>
+</div>
+<div id="toast" class="toast">Copié</div>
+
+<script>
+const state={astreinte:false,action:'consignation',domain:null,subtype:null,status:null,lastReason:'',lastIncident:'',partialDone:'',partialRemaining:''};
+const el=id=>document.getElementById(id);
+
+function load(){state.astreinte=localStorage.getItem('enedisCR_astreinte')==='1';syncSwitch();renderHistory()}
+function syncSwitch(){['astreinteSwitch','astreinteSwitch2'].forEach(id=>el(id)?.classList.toggle('on',state.astreinte));el('modeText').textContent=state.astreinte?'Activé — dépannage / astreinte':'Désactivé — travaux programmés'}
+function toggleAstreinte(){state.astreinte=!state.astreinte;localStorage.setItem('enedisCR_astreinte',state.astreinte?'1':'0');syncSwitch()}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));el(id).classList.add('active');document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(id==='home')el('navHome').classList.add('active');if(id==='history')el('navHistory').classList.add('active');if(id==='settings')el('navSettings').classList.add('active');if(id==='history')renderHistory();window.scrollTo(0,0)}
+
+function startFlow(action){state.action=action;state.status=null;if(action==='consignation'||action==='deconsignation')go('domain');else{state.domain='AUTRE';showOtherTypes(action)}}
+function chooseDomain(domain){state.domain=domain;el('subtypeChoices').innerHTML='';if(domain==='HTA'){el('subtypeTitle').textContent='Type HTA';el('subtypeDesc').textContent='Choisis la configuration de réseau.';addChoice('CA','Coupure d’artère (CA)','Consignation d’un tronçon');addChoice('DD','Double dérivation (DD)','Consignation d’une section')}else{el('subtypeTitle').textContent='Type BT';el('subtypeDesc').textContent='Choisis l’ouvrage concerné.';addChoice('DEPART_BT','Départ BT','Consignation d’un départ BT');addChoice('INTER_BT','INTER BT','Consignation d’un INTER BT');addChoice('PROTECTION_TRANSFO','Protection transfo','Consignation à la protection transformateur')}go('subtype')}
+function showOtherTypes(action){el('subtypeChoices').innerHTML='';el('subtypeTitle').textContent=action==='intervention'?'Intervention':'Clôture';el('subtypeDesc').textContent='Choisis le type.';const opts=action==='intervention'?[['IDENT_BT','Identification de câbles BT',''],['PREPA_HTA_1','Préparation câble HTA — 1er temps',''],['PREPA_HTA_2','Préparation câble HTA — 2e temps',''],['SCHEMA_NORMAL','Remise en schéma normal',''],['PREPA_CHANTIER','Préparation de chantier',''],['RDV_RIP','RDV RIP',''],['AUTRE_INTER','Autre intervention','']]:[['CLOTURE_RSI','Clôture RSI',''],['CLOTURE_CHANTIER','Clôture chantier',''],['TRANSMISSION','Transmission / Cartographie','']];opts.forEach(o=>addChoice(...o));go('subtype')}
+function addChoice(code,title,desc){const d=document.createElement('div');d.className='choice';d.innerHTML='<div class="icon">›</div><div class="txt"><div class="title">'+title+'</div><div class="desc">'+desc+'</div></div><div>›</div>';d.onclick=()=>chooseSubtype(code);el('subtypeChoices').appendChild(d)}
+function chooseSubtype(code){state.subtype=code;buildFields();go('form')}
+
+function field(id,label,placeholder=''){return '<label>'+label+'</label><input id="'+id+'" placeholder="'+placeholder+'">'}
+function selectField(id,label,options){return '<label>'+label+'</label><select id="'+id+'">'+options.map(x=>'<option value="'+x+'">'+x+'</option>').join('')+'</select>'}
+function buildFields(){
+  let h='';
+  if(state.domain==='HTA'){
+    h+=field('ouvrage',state.subtype==='CA'?'Tronçon':'Section');
+    h+=field('depart','Départ HTA');
+    h+=field('posteSource','Poste source');
+    h+='<label>Accessoire(s) / confection(s)</label><div id="accessoryList"></div>';
+    h+='<button type="button" class="btn secondary" onclick="addAccessory()">+ Ajouter un accessoire</button>';
+    h+=field('details','Complément / objet du chantier (facultatif)','Ex. insertion du nouveau poste X');
+  } else if(state.domain==='BT'){
+    h+=field('poste','Poste');
+    if(state.subtype==='DEPART_BT')h+=field('departBT','Départ BT');
+    if(state.subtype==='INTER_BT')h+=field('interBT','INTER BT');
+    h+=selectField('motif','Nature des travaux',state.astreinte?['Réparation défaut','JNI','JTR','Recherche de défaut','Remplacement coffret','Autre']:['Travaux programmés','Raccordement','Remplacement matériel','Autre']);
+    h+=field('adresse','Adresse / lieu (facultatif)');
+  } else {
+    h+=field('details','Informations principales / compte rendu');
+  }
+  el('dynamicFields').innerHTML=h;
+  if(state.domain==='HTA') addAccessory();
+}
+
+let accessoryIndex=0;
+function addAccessory(){
+  const list=el('accessoryList'); if(!list)return;
+  const idx=accessoryIndex++;
+  const row=document.createElement('div');
+  row.className='accessory-row';
+  row.id='accRow'+idx;
+  row.innerHTML=
+    '<div><label style="margin-top:0">Type</label><select id="accType'+idx+'" onchange="toggleCustomAccessory('+idx+')">'+
+      ['JNI','JTR','J3UP','J3UMP','Autre'].map(x=>'<option value="'+x+'">'+x+'</option>').join('')+
+    '</select></div>'+
+    '<div><label style="margin-top:0">Qté</label><input id="accQty'+idx+'" type="number" min="1" max="20" value="1"></div>'+
+    '<div id="accCustomWrap'+idx+'" class="custom-accessory" style="display:none"><label>Nom personnalisé</label><input id="accCustom'+idx+'" placeholder="Ex. J3UAP, accessoire spécifique…"></div>'+
+    '<div class="custom-accessory"><button type="button" class="mini-btn" onclick="removeAccessory('+idx+')">Supprimer</button></div>';
+  list.appendChild(row);
+}
+function removeAccessory(idx){
+  const row=el('accRow'+idx);
+  if(row && el('accessoryList').children.length>1) row.remove();
+  else toast('Au moins un accessoire est nécessaire');
+}
+function toggleCustomAccessory(idx){
+  const type=val('accType'+idx);
+  el('accCustomWrap'+idx).style.display=type==='Autre'?'block':'none';
+}
+function getAccessories(){
+  const rows=[...document.querySelectorAll('[id^="accRow"]')];
+  return rows.map(row=>{
+    const idx=row.id.replace('accRow','');
+    let type=val('accType'+idx);
+    if(type==='Autre') type=val('accCustom'+idx)||'accessoire personnalisé';
+    const qty=Math.max(1,parseInt(val('accQty'+idx)||'1',10)||1);
+    return {type,qty};
+  });
+}
+function qtyWord(n){
+  const words={1:'une',2:'deux',3:'trois',4:'quatre',5:'cinq',6:'six',7:'sept',8:'huit',9:'neuf',10:'dix'};
+  return words[n]||String(n);
+}
+function accessoryItem(a, withPrep){
+  if(a.qty===1) return (withPrep?'d’une ':'une ')+a.type;
+  return (withPrep?'de ':'')+qtyWord(a.qty)+' '+a.type;
+}
+function accessoriesPhrase(){
+  const a=getAccessories();
+  if(!a.length)return '';
+  if(a.length===1) return accessoryItem(a[0],true);
+  const parts=a.map((x,i)=>accessoryItem(x,true));
+  if(parts.length===2) return parts[0]+' et '+parts[1];
+  return parts.slice(0,-1).join(', ')+' et '+parts[parts.length-1];
+}
+
+function goToStatus(){state.status=null;selectStatus(null);go('status')}
+function selectStatus(status){
+  state.status=status;
+  el('doneChoice').classList.toggle('selected',status==='realise');
+  el('notDoneChoice').classList.toggle('selected',status==='non_realise');
+  el('partialChoice').classList.toggle('selected',status==='partiel');
+  el('doneMark').textContent=status==='realise'?'✓':'';
+  el('notDoneMark').textContent=status==='non_realise'?'✓':'';
+  el('partialMark').textContent=status==='partiel'?'✓':'';
+  el('reasonWrap').style.display=status==='non_realise'?'block':'none';
+  el('partialWrap').style.display=status==='partiel'?'block':'none';
+}
+function toggleOtherReason(){el('otherReasonWrap').style.display=el('reasonType').value==='Autre'?'block':'none'}
+function val(id){return el(id)?.value?.trim()||''}
+
+function baseCR(){
+  let t=''; const dec=state.action==='deconsignation';
+  if(state.domain==='HTA'){
+    const type=state.subtype==='CA'?'tronçon':'section';
+    const art=state.subtype==='CA'?'du':'de la';
+    const o=val('ouvrage'),dep=val('depart'),ps=val('posteSource'),det=val('details');
+    const acc=accessoriesPhrase();
+    if(dec){
+      t='Déconsignation '+art+' '+type+' '+o+' sur le départ HTA '+dep+', issu du poste source '+ps+', réalisée à l’issue des travaux. Remise sous tension effectuée.';
+    } else if(state.status==='realise'){
+      t='Consignation '+art+' '+type+' '+o+' sur le départ HTA '+dep+', issu du poste source '+ps+', réalisée avec la confection '+acc+(det?' '+det:'')+'.';
+    } else {
+      t='Consignation '+art+' '+type+' '+o+' sur le départ HTA '+dep+', issu du poste source '+ps+', réalisée afin de permettre la confection '+acc+(det?' '+det:'')+'.';
+    }  } else if(state.domain==='BT'){
+    const poste=val('poste'),adr=val('adresse'),motif=val('motif');
+    if(state.subtype==='DEPART_BT'){
+      const dep=val('departBT');
+      t=dec?'Déconsignation du départ '+dep+' issu du poste '+poste+' réalisée à l’issue des travaux. Remise sous tension effectuée.':'Consignation du départ '+dep+' issu du poste '+poste+' réalisée afin de permettre '+(motif==='Réparation défaut'?'la réparation du défaut':motif.toLowerCase())+(adr?' situé au '+adr:'')+'.';
+    } else if(state.subtype==='INTER_BT'){
+      const inter=val('interBT');
+      t=dec?'Déconsignation de l’INTER BT '+inter+' du poste '+poste+' réalisée à l’issue des travaux. Remise sous tension effectuée.':'Consignation de l’INTER BT '+inter+' du poste '+poste+' réalisée afin de permettre '+motif.toLowerCase()+(adr?' au '+adr:'')+'.';
+    } else {
+      t=dec?'Déconsignation de la protection transformateur du poste '+poste+' réalisée à l’issue des travaux. Remise sous tension effectuée.':'Consignation de la protection transformateur du poste '+poste+' réalisée afin de permettre '+motif.toLowerCase()+(adr?' au '+adr:'')+'.';
+    }
+  } else {
+    t=val('details');
+  }
+  return t.replace(/\s+/g,' ').trim();
+}
+
+function generateCR(){
+  if(!state.status){toast('Choisis si les travaux ont été réalisés');return}
+  let t=baseCR();
+  state.lastIncident=val('incidentNote');
+  state.partialDone='';
+  state.partialRemaining='';
+  if(state.status==='realise'){
+    state.lastReason='';
+  } else if(state.status==='non_realise'){
+    const selected=val('reasonType');
+    const reason=selected==='Autre'?(val('otherReason')||'motif non précisé'):selected.toLowerCase();
+    state.lastReason=reason;
+    t = t.replace(/\.?$/,'') + '. Travaux non réalisés : '+reason+'.';
+  } else if(state.status==='partiel'){
+    state.partialDone=val('partialDone')||'une partie des travaux';
+    state.partialRemaining=val('partialRemaining')||'le reste des travaux';
+    state.lastReason=val('partialReason')||'conditions ne permettant pas la réalisation complète';
+    // For partial work, avoid claiming all planned accessories were completed.
+    if(state.domain==='HTA' && state.action==='consignation'){
+      const type=state.subtype==='CA'?'tronçon':'section';
+      const art=state.subtype==='CA'?'du':'de la';
+      t='Consignation '+art+' '+type+' '+val('ouvrage')+' sur le départ HTA '+val('depart')+', issu du poste source '+val('posteSource')+', réalisée. Travaux partiellement réalisés : '+state.partialDone+'. Reste à réaliser : '+state.partialRemaining+'. Motif : '+state.lastReason+'.';
+    } else {
+      t=t.replace(/\.?$/,'')+'. Travaux partiellement réalisés : '+state.partialDone+'. Reste à réaliser : '+state.partialRemaining+'. Motif : '+state.lastReason+'.';
+    }
+  }
+  if(state.lastIncident){
+    t=t.replace(/\.?$/,'')+'. Particularité rencontrée : '+state.lastIncident+'.';
+  }
+  el('crText').textContent=t;
+  el('resultView').classList.remove('hidden');
+  el('editor').classList.remove('active');
+  el('resultBadge').textContent='✓ Compte rendu généré';
+  el('prepareDeconBtn').style.display=(state.action==='consignation')?'block':'none';
+  go('result');
+}
+
+
+function prepareDeconsignation(){
+  // Conserve la consignation dans l'historique avant de préparer la suite.
+  const consignationText=el('crText').textContent.trim();
+  if(consignationText){
+    const arr=JSON.parse(localStorage.getItem('enedisCR_history')||'[]');
+    if(!arr.length || arr[0].text!==consignationText){
+      arr.unshift({
+        date:new Date().toLocaleString('fr-FR'),
+        text:consignationText,
+        type:'Consignation',
+        status:state.status,
+        reason:state.lastReason||''
+      });
+      localStorage.setItem('enedisCR_history',JSON.stringify(arr.slice(0,30)));
+    }
+  }
+
+  let intro='';
+  if(state.domain==='HTA'){
+    const type=state.subtype==='CA'?'tronçon':'section';
+    const art=state.subtype==='CA'?'du':'de la';
+    const o=val('ouvrage'), dep=val('depart'), ps=val('posteSource');
+    intro='Déconsignation '+art+' '+type+' '+o+' sur le départ HTA '+dep+', issu du poste source '+ps;
+  } else if(state.domain==='BT'){
+    const poste=val('poste');
+    if(state.subtype==='DEPART_BT'){
+      intro='Déconsignation du départ '+val('departBT')+' issu du poste '+poste;
+    } else if(state.subtype==='INTER_BT'){
+      intro='Déconsignation de l’INTER BT '+val('interBT')+' du poste '+poste;
+    } else {
+      intro='Déconsignation de la protection transformateur du poste '+poste;
+    }
+  } else {
+    toast('Déconsignation non disponible pour ce type de CR');
+    return;
+  }
+
+  let t='';
+  if(state.status==='non_realise'){
+    const cause=state.lastReason || 'chantier non réalisé';
+    t=intro+', réalisée à la suite de l’annulation ou de l’arrêt des travaux. Travaux non réalisés : '+cause+'. Remise sous tension effectuée.';
+  } else if(state.status==='partiel'){
+    t=intro+', réalisée à l’issue d’une réalisation partielle des travaux. Réalisé : '+state.partialDone+'. Reste à réaliser : '+state.partialRemaining+'. Motif : '+state.lastReason+'. Remise sous tension effectuée.';
+  } else {
+    t=intro+', réalisée à l’issue de l’intervention. Remise sous tension effectuée.';
+  }
+  if(state.lastIncident){
+    t=t.replace(/\.?$/,'')+'. Particularité rencontrée : '+state.lastIncident+'.';
+  }
+
+  state.action='deconsignation';
+  el('crText').textContent=t.replace(/\s+/g,' ').trim();
+  el('resultBadge').textContent='✓ Déconsignation prête';
+  el('prepareDeconBtn').style.display='none';
+  el('resultView').classList.remove('hidden');
+  el('editor').classList.remove('active');
+  window.scrollTo(0,0);
+  toast(state.status==='non_realise'?'Annulation reprise dans la déconsignation':'Informations reprises automatiquement');
+}
+
+function openEditor(){
+  el('crEditor').value=el('crText').textContent;
+  el('resultView').classList.add('hidden');
+  el('editor').classList.add('active');
+  setTimeout(()=>el('crEditor').focus(),50);
+}
+function cancelEdit(){el('editor').classList.remove('active');el('resultView').classList.remove('hidden')}
+function saveEdit(){el('crText').textContent=el('crEditor').value.trim();cancelEdit();toast('Modification enregistrée')}
+
+async function copyCR(){
+  const text=el('crText').textContent;
+  try{await navigator.clipboard.writeText(text)}
+  catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
+  toast('Compte rendu copié');
+}
+function toast(msg){el('toast').textContent=msg;el('toast').classList.add('show');setTimeout(()=>el('toast').classList.remove('show'),1500)}
+function saveAndNew(){const text=el('crText').textContent;if(text){const arr=JSON.parse(localStorage.getItem('enedisCR_history')||'[]');arr.unshift({date:new Date().toLocaleString('fr-FR'),text});localStorage.setItem('enedisCR_history',JSON.stringify(arr.slice(0,30)))}go('home')}
+function renderHistory(){const arr=JSON.parse(localStorage.getItem('enedisCR_history')||'[]');el('historyList').innerHTML=arr.length?arr.map(x=>'<div class="history-item"><div class="small">'+x.date+(x.type?' · '+x.type:'')+'</div><div style="margin-top:5px">'+x.text+'</div></div>').join(''):'<div class="small">Aucun compte rendu enregistré.</div>'}
+function clearHistory(){localStorage.removeItem('enedisCR_history');renderHistory();toast('Historique vidé')}
+load();
+</script>
+</body>
+</html>
